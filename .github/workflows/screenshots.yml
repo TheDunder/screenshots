@@ -1,0 +1,40 @@
+# Screenshots of any public URL: light and dark at desktop width, dark at tablet width, light at mobile width.
+# This repo is public, so Actions minutes are free. Never put secrets here, and only pass public URLs:
+# the run log and the screenshots artifact (kept 7 days) can be seen by anyone.
+#   gh workflow run screenshots.yml -R TheDunder/screenshots -f url=https://<site>/
+name: Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Public page to capture
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-v1
+      - run: npx playwright install --with-deps chromium
+      - name: Capture
+        env:
+          URL: ${{ inputs.url }}
+        run: node scripts/screenshot.mjs "$URL" screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/
+          retention-days: 7
