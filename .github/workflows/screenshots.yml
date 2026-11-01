@@ -1,7 +1,7 @@
 # Screenshots of any public URL: light and dark at desktop width, dark at tablet width, light at mobile width.
 # This repo is public, so Actions minutes are free. Never put secrets here, and only pass public URLs:
 # the run log and the screenshots artifact (kept 7 days) can be seen by anyone.
-#   gh workflow run screenshots.yml -R TheDunder/screenshots -f url=https://<site>/
+#   gh workflow run screenshots.yml -R TheDunder/screenshots -f url=https://<site>/ [-f sections='<css selector>']
 name: Screenshots
 
 on:
@@ -10,6 +10,10 @@ on:
       url:
         description: Public page to capture
         required: true
+      sections:
+        description: Optional CSS selector; each visible match is also saved as its own image in sections/ (desktop light and dark)
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -32,6 +36,7 @@ jobs:
       - name: Capture
         env:
           URL: ${{ inputs.url }}
+          SECTIONS: ${{ inputs.sections }}
         run: node scripts/screenshot.mjs "$URL" screenshots
       - uses: actions/upload-artifact@v4
         with:

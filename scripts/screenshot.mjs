@@ -1,12 +1,16 @@
 // Takes full-page screenshots of the site for visual review.
 // Usage: node scripts/screenshot.mjs <url> [outdir]  (needs the playwright package)
+// SECTIONS (env, optional): a CSS selector. On the desktop shots, each visible match is also saved as
+// sections/<name>-<shot>.png, named after the element's id, its aria-labelledby, or its position.
 import { chromium } from 'playwright';
 import { mkdir } from 'node:fs/promises';
 
 const url = process.argv[2];
 if (!url) { console.error('Usage: node scripts/screenshot.mjs <url> [outdir]'); process.exit(2); }
 const out = process.argv[3] || 'screenshots';
+const sections = (process.env.SECTIONS || '').trim();
 await mkdir(out, { recursive: true });
+if (sections) await mkdir(`${out}/sections`, { recursive: true });
 
 const shots = [
   { name: 'desktop-light', width: 1280, scheme: 'light' },
@@ -36,6 +40,19 @@ for (const s of shots) {
   if (overflow > 0) { problems++; console.log(`${s.name} horizontal overflow: ${overflow}px`); }
   await page.screenshot({ path: `${out}/${s.name}.png`, fullPage: true });
   await page.screenshot({ path: `${out}/${s.name}-top.png` });
+  if (sections && s.name.startsWith('desktop')) {
+    const els = await page.locator(sections).all();
+    let i = 0, saved = 0;
+    for (const el of els) {
+      i++;
+      if (!(await el.isVisible())) continue;
+      const raw = (await el.getAttribute('id')) || (await el.getAttribute('aria-labelledby')) || `section-${i}`;
+      const name = raw.replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 60);
+      try { await el.screenshot({ path: `${out}/sections/${name}-${s.name}.png` }); saved++; }
+      catch (e) { console.log(`${s.name} section ${name} not saved: ${e.message.split('\n')[0]}`); }
+    }
+    console.log(`${s.name}: ${saved} section image(s) for ${JSON.stringify(sections)}`);
+  }
   // mid: one screen further down (on tvval: follow its menu link the way a visitor would)
   await page.evaluate(() => { const a = document.querySelector('#toc a[href="#modeller"]'); if (a) a.click(); else window.scrollTo(0, innerHeight); });
   await page.waitForTimeout(3500);

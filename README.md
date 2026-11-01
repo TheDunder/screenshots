@@ -11,6 +11,10 @@ gh run download <id> -R TheDunder/screenshots -n screenshots -D <dir>
 gh run view <id> -R TheDunder/screenshots --log | grep -E "problem|overflow|error"
 ```
 
+Add `-f sections='<css selector>'` to also save each visible matching element as its own image in `sections/`
+(`<id or aria-labelledby>-desktop-light.png` and `-desktop-dark.png`), for example
+`-f sections='header.topbar, .tab-panel:not([hidden]) > section'`.
+
 Output: `desktop-light`, `desktop-dark`, `tablet-dark`, `mobile-light`, each as a full page, `-top` (first screen) and
 `-mid`. The log lists page errors, console errors and horizontal overflow.
 
